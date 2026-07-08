@@ -1,3 +1,6 @@
+- [kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO: INVALID ACTION DETECTED
+    - step by step
+
 - integration/stub/set_up : make("open_spiel_chess", debug=True) document check
     - [Google-Deepmind/Open-Spiel](https://github.com/google-deepmind/open_spiel)
     - [OpenSpiel Document](https://openspiel.readthedocs.io/en/latest/index.html)

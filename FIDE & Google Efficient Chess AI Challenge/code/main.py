@@ -17,6 +17,7 @@ agents_list = ["random", "random"]
 # 2. 루프를 돌며 step 진행
 while not env.done:
     # 렌더링
+    # mode =  human, ansi, html, ipython
     print(env.render(mode="ansi"))
     
     # env.step에 [None, None]을 주면, 환경 내부에서 
@@ -34,3 +35,5 @@ while not env.done:
     time.sleep(0.5)
 
 print("게임 종료!")
+
+# [kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO: INVALID ACTION DETECTED
