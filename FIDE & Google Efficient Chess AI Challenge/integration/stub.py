@@ -13,5 +13,9 @@ def network_check():
 
 def set_up():
     # Now let's set up the chess environment!
-    env = make("open_spiel_chess", debug=True)
+    env = make(
+        "open_spiel_chess", 
+        configuration={"includeLegalActions": True},
+        debug=True
+    )
     return env
