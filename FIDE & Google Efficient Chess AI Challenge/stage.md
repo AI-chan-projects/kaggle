@@ -1,1 +1,2 @@
 - integration/stub/set_up : make("open_spiel_chess", debug=True) document check
+    - [Google-Deepmind/Open-Spiel](https://github.com/google-deepmind/open_spiel)
