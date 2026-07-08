@@ -1,0 +1,1 @@
+- integration/stub/set_up : make("open_spiel_chess", debug=True) document check
