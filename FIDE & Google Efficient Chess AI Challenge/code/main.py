@@ -2,6 +2,7 @@ import random
 import time
 import os
 from integration import stub
+import json
 
 # 1. 초기화
 env = stub.set_up()
@@ -56,3 +57,8 @@ while not env.done:
 clear_screen()
 print(env.render(mode="ansi"))
 print("게임 종료!")
+
+json_data = env.toJSON()
+json_data = json.dumps(json_data, indent=4)
+with open("game_result.json", "w") as f:
+    f.write(json_data)
