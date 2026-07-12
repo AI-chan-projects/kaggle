@@ -33,8 +33,8 @@ while not env.done:
     
     # 가능한 액션(정수 인덱스)
     obs = current_agent_state.observation
-    
-    # 주요 관찰(observation) 정보 출력
+
+    # 주요 관찰(observation) 정보 출력 및 파싱
     # print(f"현재 관찰(observation): {obs.keys()}")
 
     # print(type(obs["serializedGameAndState"]))
