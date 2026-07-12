@@ -32,7 +32,18 @@ while not env.done:
     current_agent_state = agent_states[current_player_idx]
     
     # 가능한 액션(정수 인덱스)
-    moves = current_agent_state.observation.get('legalActions', [])
+    obs = current_agent_state.observation
+    
+    # 주요 관찰(observation) 정보 출력
+    # print(f"현재 관찰(observation): {obs.keys()}")
+
+    # print(type(obs["serializedGameAndState"]))
+    # print(obs["serializedGameAndState"][:300])
+    # print(obs["legalActionStrings"])
+    # print(obs["observationString"])
+
+    moves = obs.get('legalActions', [])
+    
     
     if not moves:
         print("더 이상 둘 수 있는 수가 없습니다.")
@@ -51,7 +62,7 @@ while not env.done:
     print(f"Player {current_player_idx} ({player_name})가 액션 '{action_idx}'를 수행했습니다.")
     
     # 턴 사이의 간격 (너무 빨리 지나가면 확인이 어려우므로)
-    time.sleep(0.1)
+    time.sleep(10)
 
 # 게임 종료 후 마지막 상태 출력
 clear_screen()

@@ -18,7 +18,7 @@ def set_up():
         },
         debug=True
     )
-    # print(dir(env))
+    # print(env.__dict__)
     return env
 
 def inspect_object(obj, depth=0, max_depth=4):
@@ -40,3 +40,5 @@ def inspect_object(obj, depth=0, max_depth=4):
         # 재귀적으로 더 깊이 탐색
         if hasattr(value, '__dict__') or isinstance(value, dict):
             inspect_object(value, depth + 1, max_depth)
+
+# set_up()
