@@ -1,3 +1,9 @@
+- Parsed FEN 기반 Evaluate Function 고민해보기
+
+- FEN Parse, Evaluate Function, Action Funciton 적용
+
+- stub와 main 리팩토링
+
 - 레퍼런스를 분석함. kaggle_environments - make - openspiel 체스 게임 래핑으로 어디까지 인터페이스를 만들어 접근이 가능한지 확인함
         레퍼런스를 자체 라이브러리로 해결할 수 있는지 확인 중
         FEN 형태와 SAN 형태로 기물의 정보를 제공함.

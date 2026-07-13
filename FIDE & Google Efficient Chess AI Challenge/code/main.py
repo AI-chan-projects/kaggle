@@ -1,75 +1,81 @@
-import random
 import time
 import os
-from integration import stub
 import json
+from integration import stub
 
-# 1. 초기화
-env = stub.set_up()
-env.reset()
-
-# 2. 첫 번째 step으로 게임 시작
-agent_states = env.step([None, None])
-
-def clear_screen():
-    # Windows는 'cls', macOS/Linux는 'clear' 명령을 사용
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-print("게임 시작!")
-
-while not env.done:
-    # 화면 초기화 (깔끔한 터미널 출력을 위해)
-    clear_screen()
+class ChessGameManager:
+    def __init__(self):
+        self.env = stub.Environment.setup()
+        self.agent_states = None
     
-    # 현재 플레이어 인덱스 확인
-    current_player_idx = agent_states[0].observation.get('currentPlayer', 0)
-    player_name = "백(White)" if current_player_idx == 1 else "흑(Black)"
-    
-    # 렌더링 (보드판 출력)
-    print(f"--- 현재 턴: {player_name} (idx: {current_player_idx}) ---")
-    print(env.render(mode="ansi"))
-    
-    current_agent_state = agent_states[current_player_idx]
-    
-    # 가능한 액션(정수 인덱스)
-    obs = current_agent_state.observation
+    def _display_board(self, board, score):
+        print("--- 현재 보드 상태 ---")
+        for row in board:
+            # 리스트 안의 요소를 공백으로 구분하여 한 줄씩 출력
+            print(" ".join(row))
+        print(f"Material Score: {score}")
+        print("----------------------")
 
-    # 주요 관찰(observation) 정보 출력 및 파싱
-    # print(f"현재 관찰(observation): {obs.keys()}")
+    @staticmethod
+    def _clear_screen():
+        os.system('cls' if os.name == 'nt' else 'clear')
 
-    # print(type(obs["serializedGameAndState"]))
-    # print(obs["serializedGameAndState"][:300])
-    # print(obs["legalActionStrings"])
-    # print(obs["observationString"])
+    def _get_player_info(self, state):
+        idx = state.observation.get('currentPlayer', 0)
+        name = "백(White)" if idx == 1 else "흑(Black)"
+        return idx, name
 
-    moves = obs.get('legalActions', [])
-    
-    
-    if not moves:
-        print("더 이상 둘 수 있는 수가 없습니다.")
-        break
+    def _save_result(self):
+        with open("game_result.json", "w") as f:
+            json.dump(self.env.toJSON(), f, indent=4)
+        print("결과가 game_result.json으로 저장되었습니다.")
+
+    def play(self):
+        self.env.reset()
+        self.agent_states = self.env.step([None, None])
         
-    # 3. 액션 선택 및 딕셔너리 포맷 적용
-    action_idx = random.choice(moves)
-    action_payload = {"submission": action_idx}
-    
-    actions = [None, None]
-    actions[current_player_idx] = action_payload
-    
-    # 4. 환경 업데이트
-    agent_states = env.step(actions)
-    
-    print(f"Player {current_player_idx} ({player_name})가 액션 '{action_idx}'를 수행했습니다.")
-    
-    # 턴 사이의 간격 (너무 빨리 지나가면 확인이 어려우므로)
-    time.sleep(10)
+        print("게임 시작!")
 
-# 게임 종료 후 마지막 상태 출력
-clear_screen()
-print(env.render(mode="ansi"))
-print("게임 종료!")
+        while not self.env.done:
+            self._clear_screen()
+            
+            current_idx, player_name = self._get_player_info(self.agent_states[0])
+            obs = self.agent_states[current_idx].observation
+            fen_string = obs.get("observationString")
 
-json_data = env.toJSON()
-json_data = json.dumps(json_data, indent=4)
-with open("game_result.json", "w") as f:
-    f.write(json_data)
+            # 파싱 및 점수 계산
+            board = stub.FENParser.parse(fen_string)
+            board_score = stub.BoardEvaluator.get_material_score(board)
+
+            # 출력
+            self._display_board(board, board_score)
+
+            print(f"--- 현재 턴: {player_name} (idx: {current_idx}) ---")
+            print(self.env.render(mode="ansi"))
+
+            legal_actions = obs.get("legalActions", [])
+            legal_strings = obs.get("legalActionStrings", [])
+
+            if not legal_actions:
+                print("더 이상 둘 수 있는 수가 없습니다.")
+                break
+            
+            # 액션 선택 및 수행
+            chosen_action = stub.ActionSelector.choose(legal_actions, legal_strings)
+            actions = [None, None]
+            actions[current_idx] = {"submission": chosen_action}
+            
+            self.agent_states = self.env.step(actions)
+            
+            print(f"Player {current_idx} ({player_name})가 액션 '{chosen_action}'를 수행했습니다.")
+            time.sleep(1)
+
+        # 게임 종료 처리
+        self._clear_screen()
+        print(self.env.render(mode="ansi"))
+        print("게임 종료!")
+        self._save_result()
+
+if __name__ == "__main__":
+    game = ChessGameManager()
+    game.play()
