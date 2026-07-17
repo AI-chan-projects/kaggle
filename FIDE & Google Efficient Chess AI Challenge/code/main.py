@@ -10,6 +10,7 @@ class ChessGameManager:
         self.env = stub.Environment.setup()
         self.agent_states = None
         self.recent_fens = deque(maxlen=8)  # 최근 실제 국면 기록 (반복 회피용)
+        self.pyspiel_state = None  # 매턴 deserialize하지 않고, 실제 둔 수를 그대로 반영해 동기화 유지
     
     def _display_board(self, board, score):
         print("--- 현재 보드 상태 ---")
@@ -49,8 +50,8 @@ class ChessGameManager:
             board_score = stub.BoardEvaluator.get_material_score(board)
 
             self._display_board(board, board_score)
-            print(f"--- 현재 턴: {player_name} (idx: {current_idx}) ---")
             print(f"--- 현재 진행된 턴 수: {ply} ---")
+            print(f"--- 현재 턴: {player_name} (idx: {current_idx}) ---")
 
             legal_actions = obs.get("legalActions", [])
             serialized_state = obs.get("serializedGameAndState")
@@ -62,8 +63,10 @@ class ChessGameManager:
             # 이번에 둔 수를 나중에 반복 회피용으로 기록
             self.recent_fens.append(fen_string)
 
-            _game, pyspiel_state = pyspiel.deserialize_game_and_state(serialized_state)
-            history = pyspiel_state.history()
+            if self.pyspiel_state is None:
+                # 게임 시작 후 딱 한 번만 문자열에서 복원
+                _game, self.pyspiel_state = pyspiel.deserialize_game_and_state(serialized_state)
+            history = self.pyspiel_state.history()
 
             book_move = stub.OpeningBook.lookup(history)
             if book_move is not None:
@@ -71,18 +74,19 @@ class ChessGameManager:
             else:
                 # 오프닝 단계(기물 교환이 적고 이론이 잘 정립된 구간)는 얕은 depth로 충분,
                 # 중반 이후로 갈수록 깊게 봄
-                depth = 3 if len(history) < 50 else 4
+                depth = 2 if len(history) < 50 else 3
                 chosen_action = stub.MinimaxSelector.choose_from_state(
-                    pyspiel_state, depth=depth, recent_fens=self.recent_fens
+                    self.pyspiel_state, depth=depth, recent_fens=self.recent_fens
                 )
             actions = [None, None]
             actions[current_idx] = {"submission": chosen_action}
-            
+
             self.agent_states = self.env.step(actions)
+            self.pyspiel_state.apply_action(chosen_action)  # 문자열 재파싱 없이 로컬 state도 같이 진행
             
             print(f"Player {current_idx} ({player_name})가 액션 '{chosen_action}'를 수행했습니다.")
             ply += 1
-            time.sleep(0.1)
+            time.sleep(0.1)  # 0.1초 대기
             self._clear_screen()
 
         print("게임 종료!")

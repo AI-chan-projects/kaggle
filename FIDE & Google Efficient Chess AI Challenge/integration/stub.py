@@ -205,11 +205,12 @@ class MinimaxSelector:
 
         if len(best_actions) > 1 and recent_fens:
             # 동점 후보 중, 두었을 때 최근 실제 국면으로 되돌아가지 않는 수를 우선
+            # (종료 상태는 observation_string()을 호출할 수 없으므로, 반복 여부와 상관없이 그대로 통과시킴)
             non_repeating = []
             for a in best_actions:
                 child = state.clone()
                 child.apply_action(a)
-                if child.observation_string() not in recent_fens:
+                if child.is_terminal() or child.observation_string() not in recent_fens:
                     non_repeating.append(a)
             if non_repeating:
                 best_actions = non_repeating

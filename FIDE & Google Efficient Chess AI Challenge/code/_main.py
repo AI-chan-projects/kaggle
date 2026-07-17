@@ -1,12 +1,15 @@
 import time
 import os
 import json
+import pyspiel
+from collections import deque
 from integration import stub
 
 class ChessGameManager:
     def __init__(self):
         self.env = stub.Environment.setup()
         self.agent_states = None
+        self.recent_fens = deque(maxlen=8)  # 최근 실제 국면 기록 (반복 회피용)
     
     def _display_board(self, board, score):
         print("--- 현재 보드 상태 ---")
@@ -30,7 +33,7 @@ class ChessGameManager:
             json.dump(self.env.toJSON(), f, indent=4)
         print("결과가 game_result.json으로 저장되었습니다.")
 
-    def play(self, max_plies=None):
+    def play(self, max_plies=20):
         self.env.reset()
         self.agent_states = self.env.step([None, None])
         
@@ -55,8 +58,23 @@ class ChessGameManager:
             if not legal_actions:
                 print("더 이상 둘 수 있는 수가 없습니다.")
                 break
-            
-            chosen_action = stub.MinimaxSelector.choose(serialized_state, depth=4) # 기력과 시간을 트레이드오프하여 depth를 조정할 수 있습니다.
+
+            # 이번에 둔 수를 나중에 반복 회피용으로 기록
+            self.recent_fens.append(fen_string)
+
+            _game, pyspiel_state = pyspiel.deserialize_game_and_state(serialized_state)
+            history = pyspiel_state.history()
+
+            book_move = stub.OpeningBook.lookup(history)
+            if book_move is not None:
+                chosen_action = book_move
+            else:
+                # 오프닝 단계(기물 교환이 적고 이론이 잘 정립된 구간)는 얕은 depth로 충분,
+                # 중반 이후로 갈수록 깊게 봄
+                depth = 3 if len(history) < 50 else 4
+                chosen_action = stub.MinimaxSelector.choose_from_state(
+                    pyspiel_state, depth=depth, recent_fens=self.recent_fens
+                )
             actions = [None, None]
             actions[current_idx] = {"submission": chosen_action}
             
@@ -65,7 +83,6 @@ class ChessGameManager:
             print(f"Player {current_idx} ({player_name})가 액션 '{chosen_action}'를 수행했습니다.")
             ply += 1
             time.sleep(0.1)
-
             self._clear_screen()
 
         print("게임 종료!")
@@ -73,4 +90,4 @@ class ChessGameManager:
 
 if __name__ == "__main__":
     game = ChessGameManager()
-    game.play(max_plies=400)  # 최대 400턴까지 진행
+    game.play(max_plies=400)  # 최대 400 plies까지 진행
