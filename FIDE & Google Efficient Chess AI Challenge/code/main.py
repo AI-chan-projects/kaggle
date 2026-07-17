@@ -56,7 +56,7 @@ class ChessGameManager:
                 print("더 이상 둘 수 있는 수가 없습니다.")
                 break
             
-            chosen_action = stub.MinimaxSelector.choose(serialized_state, depth=3) # 기력과 시간을 트레이드오프하여 depth를 조정할 수 있습니다.
+            chosen_action = stub.MinimaxSelector.choose(serialized_state, depth=4) # 기력과 시간을 트레이드오프하여 depth를 조정할 수 있습니다.
             actions = [None, None]
             actions[current_idx] = {"submission": chosen_action}
             

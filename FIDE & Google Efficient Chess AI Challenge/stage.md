@@ -1,3 +1,14 @@
+- 문제점
+    1. 강제로 지는 상황에서의 루프 (최대손실 회피 문제)
+        - 더 늦게 지는 수에 패널티 부과.
+        - 예를 들어, 한 수를 둘 때 마다 비용이 발생하는 식.
+    2. 대국 초반엔 깊게 생각하지 않아도 된다. 
+        - ply phase별로 동적인 depth를 적용
+
+- Alpha-BetaMinimax 전략 도입
+    kaggle에서 제공하는 상태정보를 파싱해서 받음
+    pyspiel을 통해 상태 정보에 대해 가능한 수 중 최적의 수를 depth만큼 탐색 후 실제 대국에 반영
+
 - Parsed FEN 기반 Evaluate Function 고민해보기
 
 - FEN Parse, Evaluate Function, Action Funciton 적용
