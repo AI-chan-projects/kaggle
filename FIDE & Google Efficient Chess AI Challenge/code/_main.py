@@ -17,7 +17,8 @@ class ChessGameManager:
 
     @staticmethod
     def _clear_screen():
-        pass  # 테스트 환경에서는 clear 생략
+        os.system('cls' if os.name == 'nt' else 'clear')
+        return None
 
     def _get_player_info(self, state):
         idx = state.observation.get('currentPlayer', 0)
@@ -29,7 +30,7 @@ class ChessGameManager:
             json.dump(self.env.toJSON(), f, indent=4)
         print("결과가 game_result.json으로 저장되었습니다.")
 
-    def play(self, max_plies=20):
+    def play(self, max_plies=None):
         self.env.reset()
         self.agent_states = self.env.step([None, None])
         
@@ -46,6 +47,7 @@ class ChessGameManager:
 
             self._display_board(board, board_score)
             print(f"--- 현재 턴: {player_name} (idx: {current_idx}) ---")
+            print(f"--- 현재 진행된 턴 수: {ply} ---")
 
             legal_actions = obs.get("legalActions", [])
             serialized_state = obs.get("serializedGameAndState")
@@ -54,7 +56,7 @@ class ChessGameManager:
                 print("더 이상 둘 수 있는 수가 없습니다.")
                 break
             
-            chosen_action = stub.MinimaxSelector.choose(serialized_state, depth=3)
+            chosen_action = stub.MinimaxSelector.choose(serialized_state, depth=4) # 기력과 시간을 트레이드오프하여 depth를 조정할 수 있습니다.
             actions = [None, None]
             actions[current_idx] = {"submission": chosen_action}
             
@@ -62,10 +64,13 @@ class ChessGameManager:
             
             print(f"Player {current_idx} ({player_name})가 액션 '{chosen_action}'를 수행했습니다.")
             ply += 1
+            time.sleep(0.1)
+
+            self._clear_screen()
 
         print("게임 종료!")
         self._save_result()
 
 if __name__ == "__main__":
     game = ChessGameManager()
-    game.play(max_plies=20)
+    game.play(max_plies=400)  # 최대 400턴까지 진행
