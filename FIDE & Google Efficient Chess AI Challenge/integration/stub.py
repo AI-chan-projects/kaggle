@@ -1,5 +1,6 @@
 import requests
 import random
+import pyspiel
 from kaggle_environments import make
 
 class Constants:
@@ -85,16 +86,80 @@ class ActionSelector:
 
         return random.choice(candidates)
 
-# 유틸리티 함수 (객체 디버깅용)
+
+class MinimaxSelector:
+    """
+    Alpha-Beta 가지치기를 적용한 미니맥스 탐색.
+    - env를 직접 건드리지 않고 serializedGameAndState로 pyspiel State를 복제해서
+      depth수만큼 미리 시뮬레이션한 뒤, 그중 가장 유리한 첫 수를 선택.
+    - 평가값은 BoardEvaluator의 기물 점수(백=양수, 흑=음수) 기준.
+      체크메이트/스테일메이트 등 종료 상태는 큰 값(±100000)으로 처리해 항상 우선되게 함.
+    """
+
+    @staticmethod
+    def _evaluate(state):
+        if state.is_terminal():
+            white_return = state.returns()[1]  # index 0=Black, 1=White (open_spiel chess 관례)
+            return white_return * 100000
+        board = FENParser.parse(state.observation_string())
+        return BoardEvaluator.get_material_score(board)
+
+    @staticmethod
+    def _search(state, depth, alpha, beta, maximizing):
+        if depth == 0 or state.is_terminal():
+            return MinimaxSelector._evaluate(state)
+
+        if maximizing:
+            value = float("-inf")
+            for a in state.legal_actions():
+                child = state.clone()
+                child.apply_action(a)
+                value = max(value, MinimaxSelector._search(child, depth - 1, alpha, beta, False))
+                alpha = max(alpha, value)
+                if alpha >= beta:
+                    break  # 가지치기
+            return value
+        else:
+            value = float("inf")
+            for a in state.legal_actions():
+                child = state.clone()
+                child.apply_action(a)
+                value = min(value, MinimaxSelector._search(child, depth - 1, alpha, beta, True))
+                beta = min(beta, value)
+                if alpha >= beta:
+                    break
+            return value
+
+    @staticmethod
+    def choose(serialized_game_and_state, depth=2):
+        """serializedGameAndState(observation의 필드)를 받아 depth수 앞을 읽고 최선의 액션(int)을 반환."""
+        _game, state = pyspiel.deserialize_game_and_state(serialized_game_and_state)
+        maximizing = state.current_player() == 1  # White(1)면 기물점수를 최대화하는 쪽
+
+        best_score = float("-inf") if maximizing else float("inf")
+        best_actions = []
+        for a in state.legal_actions():
+            child = state.clone()
+            child.apply_action(a)
+            score = MinimaxSelector._search(child, depth - 1, float("-inf"), float("inf"), not maximizing)
+            if maximizing:
+                if score > best_score:
+                    best_score, best_actions = score, [a]
+                elif score == best_score:
+                    best_actions.append(a)
+            else:
+                if score < best_score:
+                    best_score, best_actions = score, [a]
+                elif score == best_score:
+                    best_actions.append(a)
+        return random.choice(best_actions)
+
 def inspect_object(obj, depth=0, max_depth=4):
     if depth > max_depth: return
-    
     items = obj.__dict__.items() if hasattr(obj, '__dict__') else (obj.items() if isinstance(obj, dict) else None)
-    
     if items is None:
         print("  " * depth + f"{type(obj)}")
         return
-
     for key, value in items:
         print("  " * depth + f"{key}: {type(value)}")
         if hasattr(value, '__dict__') or isinstance(value, dict):
