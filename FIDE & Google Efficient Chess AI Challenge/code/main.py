@@ -34,6 +34,31 @@ class ChessGameManager:
             json.dump(self.env.toJSON(), f, indent=4)
         print("결과가 game_result.json으로 저장되었습니다.")
 
+    def _get_result(self, ply):
+        """
+        env가 실제로 종료됐는지(체크메이트/무승부 등) vs max_plies에 걸려 강제 중단된 건지 구분.
+        agent_states[1]=White, agent_states[0]=Black 이므로 각각의 reward로 승/무/패 판정.
+        """
+        if not self.env.done:
+            return {"result": "unfinished", "reason": "max_plies_reached", "plies": ply}
+
+        white_reward = self.agent_states[1].reward
+        black_reward = self.agent_states[0].reward
+
+        if white_reward == 1:
+            result = "white_win"
+        elif black_reward == 1:
+            result = "black_win"
+        else:
+            result = "draw"
+
+        return {
+            "result": result,
+            "white_reward": white_reward,
+            "black_reward": black_reward,
+            "plies": ply,
+        }
+
     def play(self, max_plies=20):
         self.env.reset()
         self.agent_states = self.env.step([None, None])
@@ -50,8 +75,8 @@ class ChessGameManager:
             board_score = stub.BoardEvaluator.get_material_score(board)
 
             self._display_board(board, board_score)
-            print(f"--- 현재 진행된 턴 수: {ply} ---")
             print(f"--- 현재 턴: {player_name} (idx: {current_idx}) ---")
+            print(f"--- 현재 진행된 턴 수: {ply} ---")
 
             legal_actions = obs.get("legalActions", [])
             serialized_state = obs.get("serializedGameAndState")
@@ -74,7 +99,7 @@ class ChessGameManager:
             else:
                 # 오프닝 단계(기물 교환이 적고 이론이 잘 정립된 구간)는 얕은 depth로 충분,
                 # 중반 이후로 갈수록 깊게 봄
-                depth = 2 if len(history) < 50 else 3
+                depth = 2 if len(history) < 10 else 3
                 chosen_action = stub.MinimaxSelector.choose_from_state(
                     self.pyspiel_state, depth=depth, recent_fens=self.recent_fens
                 )
@@ -86,12 +111,16 @@ class ChessGameManager:
             
             print(f"Player {current_idx} ({player_name})가 액션 '{chosen_action}'를 수행했습니다.")
             ply += 1
-            time.sleep(0.1)  # 0.1초 대기
-            self._clear_screen()
 
-        print("게임 종료!")
+        result = self._get_result(ply)
+        if result["result"] == "unfinished":
+            print(f"게임 종료! (미완료 — max_plies={ply}에서 강제 중단)")
+        else:
+            label = {"white_win": "백 승", "black_win": "흑 승", "draw": "무승부"}[result["result"]]
+            print(f"게임 종료! 결과: {label} (총 {ply}수 진행)")
         self._save_result()
+        return result
 
 if __name__ == "__main__":
     game = ChessGameManager()
-    game.play(max_plies=400)  # 최대 400 plies까지 진행
+    game.play(max_plies=400)
