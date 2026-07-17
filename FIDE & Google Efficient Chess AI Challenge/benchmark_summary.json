@@ -1,0 +1,315 @@
+{
+  "n_games": 50,
+  "counts": {
+    "black_win": 22,
+    "white_win": 21,
+    "draw": 7
+  },
+  "avg_plies_by_result": {
+    "black_win": 104.81818181818181,
+    "white_win": 118.61904761904762,
+    "draw": 258.0
+  },
+  "raw_results": [
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 146
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 97
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 66
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 59
+    },
+    {
+      "result": "draw",
+      "white_reward": 0.0,
+      "black_reward": 0.0,
+      "plies": 229
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 15
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 85
+    },
+    {
+      "result": "draw",
+      "white_reward": 0.0,
+      "black_reward": 0.0,
+      "plies": 255
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 137
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 58
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 106
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 29
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 142
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 64
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 112
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 217
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 93
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 92
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 101
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 120
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 65
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 108
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 76
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 83
+    },
+    {
+      "result": "draw",
+      "white_reward": 0.0,
+      "black_reward": 0.0,
+      "plies": 349
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 119
+    },
+    {
+      "result": "draw",
+      "white_reward": 0.0,
+      "black_reward": 0.0,
+      "plies": 183
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 50
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 175
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 309
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 51
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 213
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 88
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 108
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 61
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 217
+    },
+    {
+      "result": "draw",
+      "white_reward": 0.0,
+      "black_reward": 0.0,
+      "plies": 322
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 102
+    },
+    {
+      "result": "draw",
+      "white_reward": 0.0,
+      "black_reward": 0.0,
+      "plies": 279
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 206
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 190
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 28
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 94
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 47
+    },
+    {
+      "result": "draw",
+      "white_reward": 0.0,
+      "black_reward": 0.0,
+      "plies": 189
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 218
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 78
+    },
+    {
+      "result": "black_win",
+      "white_reward": -1.0,
+      "black_reward": 1.0,
+      "plies": 54
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 213
+    },
+    {
+      "result": "white_win",
+      "white_reward": 1.0,
+      "black_reward": -1.0,
+      "plies": 105
+    }
+  ]
+}
