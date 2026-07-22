@@ -4,6 +4,9 @@ import json
 import pyspiel
 from collections import deque
 from integration import stub
+import functions
+
+a = functions.Functions()
 
 class ChessGameManager:
     def __init__(self):
