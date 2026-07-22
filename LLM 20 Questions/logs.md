@@ -1,5 +1,24 @@
+- llm_20_questions.py에서 함수를 차례로 불러와서 파싱해봐야겠다.
+
 - 게임 구성하기
-    - 
+    - 룰에 따라서 게임 구성하기
+    - 1 token ≈ 4 letters
+    - 게임 로직이 llm_20_questions.py 에 함수로 작성되어 있음.
+    - 만약 여러개의 서로 다른 대답을 얻고 싶은 경우
+        ```py
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=100,
+            num_return_sequences=3,  # 서로 다른 대답 3개를 만들어줘!
+            do_sample=True,  # 무작위성을 켜서 매번 다르게 대답하게 해줘!
+            temperature=0.7,  # 창의성(다양성) 조절
+        )
+    - llm_parent_dir = str(Path.home()) + "/.cache/huggingface/hub"
+        설정완료
+
+        # 이 경우에만 batch_decode 결과에 진짜로 3개의 다른 문장이 들어옵니다.
+        answers = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+        ```
 
 - 모델 불러오기 3
     - 두 가지 코드 수정할 것 :

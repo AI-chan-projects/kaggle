@@ -12,8 +12,9 @@ from random import choice
 from string import Template
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
-
-llm_parent_dir = "/kaggle/input/flan-t5/pytorch/large"
+# Hugging Face llm dir : ~/.cache/huggingface/hub
+llm_parent_dir = str(Path.home()) + "/.cache/huggingface/hub"
+# llm_parent_dir = "/kaggle/input/flan-t5/pytorch/large"
 
 device = None
 model = None
