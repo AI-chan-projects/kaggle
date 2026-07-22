@@ -1,3 +1,6 @@
+- > unzip llm-20-questions
+    - .gitignore > # resource : \ ./res
+
 - kaggle api token 발행
     - export 완료
     - pip install kaggle
