@@ -5,7 +5,11 @@ llm_20_questions 로컬 실행용 main.py
 - kaggle_environments의 4-agent interpreter는 제출용이라 로컬 테스트엔 과함 ->
   guesser/answerer 한 쌍으로 직접 도는 단순 루프로 대체
 """
-import warnings
+
+import argparse
+import logging
+from datetime import datetime
+from pathlib import Path
 from types import SimpleNamespace
 
 import torch
@@ -16,10 +20,88 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import llm_20_questions as ref
 from llm_20_questions import GUESSER, ANSWERER, ASK, GUESS, keyword_guessed
 
-# FutureWarning 무시 설정
-warnings.filterwarnings(
-    "ignore", category=FutureWarning, module="bitsandbytes"
-)
+# ---------------- 프롬프트 실험용 인터페이스 ----------------
+# call_llm을 몽키패치했던 것과 같은 원리: guesser_agent/answerer_agent 내부에서
+# 이름으로 참조하는 ref 모듈의 전역 상수(QUESTION_STRATEGY_EARLY 등)를
+# 실행 전에 덮어쓰면, llm_20_questions.py 코드는 한 줄도 안 건드리고
+# 프롬프트만 바꿔가며 테스트할 수 있다.
+#
+# variant 하나 추가하고 싶으면 아래 딕셔너리에 항목만 추가하면 됨.
+
+# python -m main --variant baseline
+# python -m main --variant category_first_strict
+# python -m main --variant explicit_category_list --max-turns 15
+
+PROMPT_VARIANTS = {
+    "baseline": {},  # llm_20_questions.py에 정의된 기본 프롬프트 그대로 사용
+
+    "category_first_strict": {
+        "QUESTION_STRATEGY_EARLY": (
+            "Strategy: this is one of the first 3 questions. You MUST ask ONLY "
+            "about the broad top-level category: is it a person, a place, an "
+            "animal, or an object? Do not ask about any specific name, era, "
+            "field, or trait yet."
+        ),
+    },
+
+    "explicit_category_list": {
+        "QUESTION_STRATEGY_EARLY": (
+            "Strategy: this is an early question. The keyword belongs to one of "
+            "these categories: person, place (city/country/landmark), animal, "
+            "or object. Ask a single yes/no question that eliminates as many "
+            "of these categories as possible."
+        ),
+        "QUESTION_STRATEGY_LATE": (
+            "Strategy: you should already know the broad category from earlier "
+            "answers. Ask a question that cuts the remaining possibilities "
+            "roughly in half. Do not repeat a question that is logically the "
+            "same as one already asked."
+        ),
+    },
+}
+
+
+def apply_prompt_variant(name: str) -> None:
+    """ref(llm_20_questions) 모듈의 프롬프트 상수를 variant 값으로 오버라이드."""
+    if name not in PROMPT_VARIANTS:
+        raise ValueError(f"알 수 없는 variant: {name} (선택 가능: {list(PROMPT_VARIANTS)})")
+    overrides = PROMPT_VARIANTS[name]
+    for attr, value in overrides.items():
+        if not hasattr(ref, attr):
+            raise AttributeError(f"llm_20_questions.py에 '{attr}' 상수가 없습니다.")
+        setattr(ref, attr, value)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--variant", default="baseline", choices=list(PROMPT_VARIANTS),
+        help="테스트할 프롬프트 variant 이름",
+    )
+    parser.add_argument("--max-turns", type=int, default=20)
+    return parser.parse_args()
+
+
+ARGS = parse_args()
+
+# ---------------- 로깅 설정 ----------------
+# 파일명은 실행 시작 시각 + variant 이름 기준. 콘솔 출력 구조는 print와 동일하게 유지.
+START_TIME = datetime.now()
+LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+LOG_PATH = LOG_DIR / f"{START_TIME:%Y%m%d_%H%M%S}_{ARGS.variant}.log"
+
+logger = logging.getLogger("llm20q")
+logger.setLevel(logging.INFO)
+logger.propagate = False
+if not logger.handlers:
+    _formatter = logging.Formatter("%(message)s")
+    _file_handler = logging.FileHandler(LOG_PATH, encoding="utf-8")
+    _file_handler.setFormatter(_formatter)
+    _stream_handler = logging.StreamHandler()
+    _stream_handler.setFormatter(_formatter)
+    logger.addHandler(_file_handler)
+    logger.addHandler(_stream_handler)
 
 # ---------------- Gemma 설정 ----------------
 quantization_config = BitsAndBytesConfig(
@@ -94,23 +176,37 @@ def run_game(max_turns: int = 20, verbose: bool = True):
         guesses.append(guess)
 
         if verbose:
-            print(f"[Turn {turn}] Q: {question}")
-            print(f"           A: {answer}")
-            print(f"           Guess: {guess}\n")
+            logger.info(f"[Turn {turn}] Q: {question}")
+            logger.info(f"           A: {answer}")
+            logger.info(f"           Guess: {guess}\n")
 
         if keyword_guessed(guess):
             guessed = True
             score = 20 - turn + 1
-            print(f"✅ 정답! 키워드: {ref.keyword} (턴 {turn}, 점수 {score})")
+            logger.info(f"✅ 정답! 키워드: {ref.keyword} (턴 {turn}, 점수 {score})")
             break
 
     if not guessed:
-        print(f"❌ 20턴 내 실패. 정답은: {ref.keyword}")
+        logger.info(f"❌ 20턴 내 실패. 정답은: {ref.keyword}")
 
     return {"questions": questions, "answers": answers, "guesses": guesses,
             "guessed": guessed, "score": score}
 
 
 if __name__ == "__main__":
-    print(f"카테고리: {ref.category} / 정답(디버그): {ref.keyword}\n")
-    run_game(max_turns=20)
+    apply_prompt_variant(ARGS.variant)
+    ref.MAX_TURNS = ARGS.max_turns  # guesser_agent의 '마지막 턴' 판정과 max_turns를 일치시킴
+
+    logger.info(f"로그 파일: {LOG_PATH}")
+    logger.info(f"프롬프트 variant: {ARGS.variant}")
+    logger.info(f"카테고리: {ref.category} / 정답(디버그): {ref.keyword}\n")
+
+    result = run_game(max_turns=ARGS.max_turns)
+
+    end_time = datetime.now()
+    logger.info("\n=== 실행 요약 ===")
+    logger.info(f"variant: {ARGS.variant}")
+    logger.info(f"시작: {START_TIME:%Y-%m-%d %H:%M:%S}")
+    logger.info(f"종료: {end_time:%Y-%m-%d %H:%M:%S}")
+    logger.info(f"소요 시간: {end_time - START_TIME}")
+    logger.info(f"정답 여부: {result['guessed']} / 점수: {result['score']}")
