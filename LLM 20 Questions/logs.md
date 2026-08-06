@@ -1,3 +1,19 @@
+- 세번째 루프 : 질문이 분절되지 않아 Yes or No 질문으로 떨어지지 않는다.
+    - 로그 파일: /Users/ironie/code/kaggle/LLM 20 Questions/code/src/logs/20260806_140947_category_first_strict.log
+        프롬프트 variant: category_first_strict
+        카테고리: country / 정답(디버그): monaco
+
+        [Turn 1] Q: Is it a person, a place, an animal, or an object?
+                A: maybe
+                Guess: The keyword is person.
+
+            You can't definitively say it's a person, place, or animal, but you can certainly say it's someone.
+
+- 두번째 루프 : 프롬프트가 같으니, 진행이 동일하다.
+    - 프롬프트를 변경할 수 있는 인터페이스를 붙이기 위해 레퍼런스 코드의 guess agent의 프롬프트 부분을 모듈 레벨로 리팩터링
+    - 프롬프트에 전략을 도입하기
+    - main.py에 KV 형식으로 프롬프트를 선택할 수 있게 하였다.
+
 - 첫 루프 : guessing이 제대로 진행되지 않는다.
 카테고리: landmark / 정답(디버그): puncak jaya
 
