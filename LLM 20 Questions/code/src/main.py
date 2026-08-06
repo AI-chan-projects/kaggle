@@ -4,6 +4,11 @@ llm_20_questions 로컬 실행용 main.py
 - call_llm만 T5 -> Gemma-1.1-2b-it (4bit 양자화)로 교체
 - kaggle_environments의 4-agent interpreter는 제출용이라 로컬 테스트엔 과함 ->
   guesser/answerer 한 쌍으로 직접 도는 단순 루프로 대체
+
+  example usage:
+python -m main --variant baseline
+python -m main --variant category_first_strict
+python -m main --variant explicit_category_list --max-turns 15
 """
 
 import argparse
@@ -27,20 +32,18 @@ from llm_20_questions import GUESSER, ANSWERER, ASK, GUESS, keyword_guessed
 # 프롬프트만 바꿔가며 테스트할 수 있다.
 #
 # variant 하나 추가하고 싶으면 아래 딕셔너리에 항목만 추가하면 됨.
-
-# python -m main --variant baseline
-# python -m main --variant category_first_strict
-# python -m main --variant explicit_category_list --max-turns 15
-
 PROMPT_VARIANTS = {
     "baseline": {},  # llm_20_questions.py에 정의된 기본 프롬프트 그대로 사용
 
     "category_first_strict": {
         "QUESTION_STRATEGY_EARLY": (
-            "Strategy: this is one of the first 3 questions. You MUST ask ONLY "
-            "about the broad top-level category: is it a person, a place, an "
-            "animal, or an object? Do not ask about any specific name, era, "
-            "field, or trait yet."
+            "Strategy: this is one of the first 3 questions. You MUST ask about "
+            "ONLY ONE of these categories at a time: person, place, animal, or "
+            "object — never list more than one option in a single question. "
+            "Your question must be answerable with a strict yes or no. "
+            "Good: 'Is it a place?' Bad: 'Is it a person, a place, an animal, "
+            "or an object?' Start with whichever single category you think is "
+            "most likely."
         ),
     },
 
@@ -48,8 +51,10 @@ PROMPT_VARIANTS = {
         "QUESTION_STRATEGY_EARLY": (
             "Strategy: this is an early question. The keyword belongs to one of "
             "these categories: person, place (city/country/landmark), animal, "
-            "or object. Ask a single yes/no question that eliminates as many "
-            "of these categories as possible."
+            "or object. Ask a single yes/no question testing ONE of these "
+            "categories alone — never combine multiple categories with 'or' "
+            "in one question, since that cannot be answered with yes/no. "
+            "Good: 'Is it a place?' Bad: 'Is it a person or a place?'"
         ),
         "QUESTION_STRATEGY_LATE": (
             "Strategy: you should already know the broad category from earlier "

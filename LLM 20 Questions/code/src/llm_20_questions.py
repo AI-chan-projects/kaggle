@@ -43,19 +43,27 @@ EARLY_TURN_THRESHOLD = 3
 GUESSER_INFO_PROMPT_TEMPLATE = """You are playing a game of 20 questions where you ask the questions and try to figure out the keyword, which will be a real or fictional person, place, or thing. \nHere is what you know so far:\n{q_a_thread}"""
 
 QUESTION_STRATEGY_EARLY = (
-    "Strategy: this is still an early question. Do NOT guess a specific "
-    "person/place/thing yet. Instead, narrow down the broad category first "
-    "(for example: Is it a person? Is it a place? Is it an object? Is it "
-    "abstract or concrete?)."
+    "Strategy: this is still an early question. Test exactly ONE hypothesis "
+    "at a time, and phrase it so it is answerable with a strict yes or no. "
+    "NEVER list multiple options joined by 'or' in a single question — that "
+    "cannot be answered with yes/no. "
+    "Good example: 'Is it a place?' "
+    "Bad example: 'Is it a person, a place, an animal, or an object?' "
+    "Pick the single most likely broad category (person, place, animal, or "
+    "object) and ask about that one category alone."
 )
 
 QUESTION_STRATEGY_LATE = (
     "Strategy: use everything you know so far to narrow down further within "
-    "the category/subcategory you've already identified. Avoid repeating a "
-    "question that is logically the same as one already asked."
+    "the category/subcategory you've already identified. Test exactly ONE "
+    "hypothesis at a time, phrased so it is answerable with a strict yes or "
+    "no — never list multiple options joined by 'or' in a single question. "
+    "Avoid repeating a question that is logically the same as one already "
+    "asked."
 )
 
 QUESTIONS_PROMPT_TEMPLATE = """Ask one yes or no question. This is question {turn_num} of {max_turns}.
+Your question must be answerable with only "yes" or "no" — do not phrase it as a multiple-choice question.
 {strategy}"""
 
 GUESS_PROMPT_TEMPLATE = """Guess the keyword. Only respond with the exact word/phrase. For example, if you think the keyword is [paris], don't respond with [I think the keyword is paris] or [Is the kewyord Paris?]. Respond only with the word [paris]."""

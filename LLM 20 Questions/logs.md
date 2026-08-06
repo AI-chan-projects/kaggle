@@ -1,3 +1,31 @@
+- 다섯번째 루프 : 다른 프롬프트 옵션, 같은 출력
+    로그 파일: /Users/ironie/code/kaggle/LLM 20 Questions/code/src/logs/20260806_142302_explicit_category_list.log
+    프롬프트 variant: explicit_category_list
+    카테고리: city / 정답(디버그): antwerp belgium
+
+    [Turn 1] Q: Yes
+            A: yes
+            Guess: Paris.
+
+
+
+
+
+- 네번째 루프 : paris in the yes
+    로그 파일: /Users/ironie/code/kaggle/LLM 20 Questions/code/src/logs/20260806_142003_category_first_strict.log
+    프롬프트 variant: category_first_strict
+    카테고리: city / 정답(디버그): yaounde cameroon
+
+    [Turn 1] Q: Yes.
+            A: yes
+            Guess: Paris.
+
+    [Turn 2] Q: Yes.
+            A: yes
+            Guess: Paris.
+
+
+
 - 세번째 루프 : 질문이 분절되지 않아 Yes or No 질문으로 떨어지지 않는다.
     - 로그 파일: /Users/ironie/code/kaggle/LLM 20 Questions/code/src/logs/20260806_140947_category_first_strict.log
         프롬프트 variant: category_first_strict
