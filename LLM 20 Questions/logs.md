@@ -1,3 +1,68 @@
+- 일곱번째 루프 : guess를 단어로 제한해서 맥락 정보가 수렴하는 것 같다.
+    대회 규칙을 적용해야겠다.
+    - 대회 규칙 I need 2 llm models
+    - rule (60 sec/round + additional 300 sec/game + when timeout, game ends + when answeror the other answer except yes or no, game ends)
+    - guessor (question max letter : 750, thought max letter : 100)
+    - answeror (yes or no)
+
+        로그 파일: /Users/ironie/code/kaggle/LLM 20 Questions/code/src/logs/20260806_144630_category_first_strict.log
+    프롬프트 variant: category_first_strict
+    seed: 42
+    카테고리: city / 정답(디버그): ingolstadt germany
+
+    [Turn 1] Q: Is it a place?
+            A: yes
+            Guess: Statue podrobily.
+
+    [Turn 2] Q: Is it something that existed in ancient times?
+            A: yes
+            Guess: Zeus
+
+    [Turn 3] Q: Is it something associated with royalty or nobility?
+            A: yes
+            Guess: Alexandria
+
+
+
+- 여섯번째 루프 : 같은 질문을 반복함. 이진 질문을 잘못 이해함.
+    로그 파일: /Users/ironie/code/kaggle/LLM 20 Questions/code/src/logs/20260806_143213_category_first_strict.log
+    프롬프트 variant: category_first_strict
+    seed: 42
+    카테고리: city / 정답(디버그): guangzhou china
+
+    [Turn 1] Q: Is it a place?
+            A: yes
+            Guess: Statue podrobly.
+
+    [Turn 2] Q: Is it a place or an object?
+            A: maybe
+            Guess: Hollywood
+
+    [Turn 3] Q: Is it a place or an object?
+            A: maybe
+            Guess: Alexandria
+
+
+- 변경사항
+    QUESTIONS_PROMPT_TEMPLATE/GUESS_PROMPT_TEMPLATE/GUESS_PROMPT_FINAL_TEMPLATE 끝에 Question: / Guess: cue를 붙여서, 모델이 지시문을 읽고 답하는 게 아니라 그 cue 뒤를 자연스럽게 이어 쓰게 유도 (few-shot 없이도 형식을 강제하는 흔한 트릭) >> 이런게 있다고?
+
+    전략 텍스트에서 Good/Bad 예시 나열을 줄여서 프롬프트 자체를 단순화 (작은 모델일수록 지시가 길고 조건이 많으면 형식을 놓치기 쉬움)
+
+    guesser_agent에 _strip_echoed_cue() 후처리 추가 — 혹시 모델이 Question:/Guess:나 따옴표를 그대로 따라 출력해도 정리되게
+
+    call_llm을 do_sample=True, temperature=0.7, top_p=0.9, repetition_penalty=1.15로 전환 — greedy가 "Paris" 같은 최빈값으로 붕괴하는 걸 완화
+
+    --seed 옵션 추가: variant 간 비교할 때 같은 시드로 고정하면 "프롬프트 차이"만 순수하게 비교 가능, 안 주면 매번 랜덤
+
+    한 가지 트레이드오프는 말씀드려야 할 것 같은데, 샘플링을 켜면 같은 variant를 여러 번 돌려도 결과가 매번 달라집니다. 지금 5번째 루프처럼 "variant는 다른데 출력이 똑같다"는 문제는 해결되겠지만, 반대로 "이 variant가 진짜 더 나은지" 판단하려면 한 번의 실행이 아니라 여러 번 돌려서 평균 점수/정답률을 비교해야 신뢰할 수 있습니다. 여러 게임을 자동으로 반복 실행해서 variant별 성적을 집계하는 스윕 스크립트가 필요
+
+    
+- 문제 원인 분석 :
+    - 프롬프트가 2B 모델에게는 너무 버거운 프롬프트다. (예시가 있어 구분이 안가는 듯, 예시에 대해 그냥 대답해버림.)
+    - greedy decoding에서 문답 정보가 없는 경우 학습 데이터의 city -> paris로 고정되는 문제
+
+    - 샘플링, 랜덤(시드를 활용해 재현성)
+
 - 다섯번째 루프 : 다른 프롬프트 옵션, 같은 출력
     로그 파일: /Users/ironie/code/kaggle/LLM 20 Questions/code/src/logs/20260806_142302_explicit_category_list.log
     프롬프트 variant: explicit_category_list
@@ -6,9 +71,6 @@
     [Turn 1] Q: Yes
             A: yes
             Guess: Paris.
-
-
-
 
 
 - 네번째 루프 : paris in the yes

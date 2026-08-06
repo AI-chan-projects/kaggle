@@ -4,11 +4,6 @@ llm_20_questions 로컬 실행용 main.py
 - call_llm만 T5 -> Gemma-1.1-2b-it (4bit 양자화)로 교체
 - kaggle_environments의 4-agent interpreter는 제출용이라 로컬 테스트엔 과함 ->
   guesser/answerer 한 쌍으로 직접 도는 단순 루프로 대체
-
-  example usage:
-python -m main --variant baseline
-python -m main --variant category_first_strict
-python -m main --variant explicit_category_list --max-turns 15
 """
 
 import argparse
@@ -37,30 +32,32 @@ PROMPT_VARIANTS = {
 
     "category_first_strict": {
         "QUESTION_STRATEGY_EARLY": (
-            "Strategy: this is one of the first 3 questions. You MUST ask about "
-            "ONLY ONE of these categories at a time: person, place, animal, or "
-            "object — never list more than one option in a single question. "
-            "Your question must be answerable with a strict yes or no. "
+            "Strategy: this is the very first question. You MUST ask about "
+            "ONLY ONE of these categories: person, place, animal, or object — "
+            "never list more than one option in a single question. Your "
+            "question must be answerable with a strict yes or no. "
             "Good: 'Is it a place?' Bad: 'Is it a person, a place, an animal, "
-            "or an object?' Start with whichever single category you think is "
+            "or an object?' Ask about whichever single category you think is "
             "most likely."
         ),
     },
 
     "explicit_category_list": {
         "QUESTION_STRATEGY_EARLY": (
-            "Strategy: this is an early question. The keyword belongs to one of "
-            "these categories: person, place (city/country/landmark), animal, "
-            "or object. Ask a single yes/no question testing ONE of these "
-            "categories alone — never combine multiple categories with 'or' "
-            "in one question, since that cannot be answered with yes/no. "
+            "Strategy: this is the very first question. The keyword belongs "
+            "to one of these categories: person, place (city/country/"
+            "landmark), animal, or object. Ask a single yes/no question "
+            "testing ONE of these categories alone — never combine multiple "
+            "categories with 'or' in one question, since that cannot be "
+            "answered with yes/no. "
             "Good: 'Is it a place?' Bad: 'Is it a person or a place?'"
         ),
         "QUESTION_STRATEGY_LATE": (
-            "Strategy: you should already know the broad category from earlier "
-            "answers. Ask a question that cuts the remaining possibilities "
-            "roughly in half. Do not repeat a question that is logically the "
-            "same as one already asked."
+            "Strategy: you already know the broad category from the yes/no "
+            "answers above — do NOT ask about the broad category again. "
+            "Look at the Q&A history and ask a NEW question that cuts the "
+            "remaining possibilities roughly in half. Never ask a question "
+            "whose answer you can already infer from the history above."
         ),
     },
 }
@@ -84,6 +81,10 @@ def parse_args():
         help="테스트할 프롬프트 variant 이름",
     )
     parser.add_argument("--max-turns", type=int, default=20)
+    parser.add_argument(
+        "--seed", type=int, default=None,
+        help="지정하면 torch.manual_seed로 고정 (variant 간 비교 재현성용). 안 주면 매 실행 랜덤.",
+    )
     return parser.parse_args()
 
 
@@ -136,7 +137,19 @@ def call_llm(prompt: str) -> str:
         return_dict=True,  # BatchEncoding(dict)으로 고정 반환 -> generate(**inputs)로 사용
     ).to(model.device)
     input_len = inputs["input_ids"].shape[-1]
-    output_ids = model.generate(**inputs, max_new_tokens=64, do_sample=False)
+
+    # 프롬프트 끝의 cue로 ask/guess를 구분해서 다른 생성 파라미터 적용.
+    # - 질문(ask): 다양성이 필요 -> temperature 조금 높게, greedy가 "Paris" 류로
+    #   수렴하는 걸 완화
+    # - 추측(guess): 창의성 불필요, 정확한 단어 하나가 필요 -> temperature 낮게.
+    #   지난 실행에서 guess에 샘플링을 그대로 쓰니 "Statue podrobly." 같은
+    #   의미 없는 문자열이 나왔음.
+    if prompt.rstrip().endswith("Guess:"):
+        gen_kwargs = dict(do_sample=True, temperature=0.3, top_p=0.9, repetition_penalty=1.1)
+    else:
+        gen_kwargs = dict(do_sample=True, temperature=0.7, top_p=0.9, repetition_penalty=1.15)
+
+    output_ids = model.generate(**inputs, max_new_tokens=64, **gen_kwargs)
     new_tokens = output_ids[0][input_len:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
@@ -199,11 +212,15 @@ def run_game(max_turns: int = 20, verbose: bool = True):
 
 
 if __name__ == "__main__":
+    if ARGS.seed is not None:
+        torch.manual_seed(ARGS.seed)
+
     apply_prompt_variant(ARGS.variant)
     ref.MAX_TURNS = ARGS.max_turns  # guesser_agent의 '마지막 턴' 판정과 max_turns를 일치시킴
 
     logger.info(f"로그 파일: {LOG_PATH}")
     logger.info(f"프롬프트 variant: {ARGS.variant}")
+    logger.info(f"seed: {ARGS.seed}")
     logger.info(f"카테고리: {ref.category} / 정답(디버그): {ref.keyword}\n")
 
     result = run_game(max_turns=ARGS.max_turns)

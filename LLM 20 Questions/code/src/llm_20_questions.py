@@ -33,7 +33,7 @@ GUESSER = "guesser"
 ANSWERER = "guesser"
 
 MAX_TURNS = 20  # main.py의 run_game(max_turns=...)과 맞춰서 사용
-EARLY_TURN_THRESHOLD = 3
+EARLY_TURN_THRESHOLD = 1  # 넓은 카테고리 질문은 1턴만. 그 이후는 반드시 좁혀나가야 함
 
 # ---- 프롬프트 템플릿(전역 상수) ----
 # call_llm과 같은 방식으로 몽키패치 가능: main.py에서
@@ -43,37 +43,37 @@ EARLY_TURN_THRESHOLD = 3
 GUESSER_INFO_PROMPT_TEMPLATE = """You are playing a game of 20 questions where you ask the questions and try to figure out the keyword, which will be a real or fictional person, place, or thing. \nHere is what you know so far:\n{q_a_thread}"""
 
 QUESTION_STRATEGY_EARLY = (
-    "Strategy: this is still an early question. Test exactly ONE hypothesis "
-    "at a time, and phrase it so it is answerable with a strict yes or no. "
-    "NEVER list multiple options joined by 'or' in a single question — that "
-    "cannot be answered with yes/no. "
-    "Good example: 'Is it a place?' "
-    "Bad example: 'Is it a person, a place, an animal, or an object?' "
-    "Pick the single most likely broad category (person, place, animal, or "
-    "object) and ask about that one category alone."
+    "Strategy: this is the very first question. Ask about exactly ONE broad "
+    "category — a strict yes/no question, never listing multiple options "
+    "with 'or'. Example of the right shape: 'Is it a place?'"
 )
 
 QUESTION_STRATEGY_LATE = (
-    "Strategy: use everything you know so far to narrow down further within "
-    "the category/subcategory you've already identified. Test exactly ONE "
-    "hypothesis at a time, phrased so it is answerable with a strict yes or "
-    "no — never list multiple options joined by 'or' in a single question. "
-    "Avoid repeating a question that is logically the same as one already "
-    "asked."
+    "Strategy: you already know the broad category (person/place/animal/"
+    "object) from the yes/no answers above — do NOT ask about the broad "
+    "category again. Look at the Q&A history above and ask a NEW question "
+    "that narrows down further within what you already know (e.g. region, "
+    "size, time period, function) — a strict yes/no question, never listing "
+    "multiple options with 'or'. Never ask a question whose answer you can "
+    "already infer from the history above."
 )
 
+# 끝에 "Question:" cue를 붙여서 모델이 지시문에 답하는 대신 실제 질문을
+# 이어 쓰게 유도 (2B급 소형 모델은 복잡한 지시만으로는 형식을 잘 못 지킴).
 QUESTIONS_PROMPT_TEMPLATE = """Ask one yes or no question. This is question {turn_num} of {max_turns}.
-Your question must be answerable with only "yes" or "no" — do not phrase it as a multiple-choice question.
-{strategy}"""
+{strategy}
+Output only the question itself, nothing else.
+Question:"""
 
-GUESS_PROMPT_TEMPLATE = """Guess the keyword. Only respond with the exact word/phrase. For example, if you think the keyword is [paris], don't respond with [I think the keyword is paris] or [Is the kewyord Paris?]. Respond only with the word [paris]."""
+GUESS_PROMPT_TEMPLATE = """Guess the keyword. Respond with only the exact word/phrase, nothing else — no sentence, no explanation. Do not default to an obvious/generic answer (e.g. "Paris" for a city) unless the evidence above actually points to it.
+Guess:"""
 
 GUESS_PROMPT_FINAL_TEMPLATE = (
     "This is your LAST guess. Based on everything above, give your single "
-    "best guess for the keyword even if you are not fully certain. "
-    "Only respond with the exact word/phrase. For example, if you think the "
-    "keyword is [paris], don't respond with [I think the keyword is paris] "
-    "or [Is the keyword Paris?]. Respond only with the word [paris]."
+    "best guess for the keyword even if you are not fully certain. Respond "
+    "with only the exact word/phrase, nothing else. Do not default to an "
+    "obvious/generic answer unless the evidence above actually points to it.\n"
+    "Guess:"
 )
 
 ANSWERER_INFO_PROMPT_TEMPLATE = """You are a very precise answerer in a game of 20 questions. The keyword that the questioner is trying to guess is [the {category} {keyword}]. """
@@ -122,7 +122,18 @@ def guesser_agent(obs):
     else:
         return ""
 
-    return call_llm(prompt)
+    raw = call_llm(prompt)
+    return _strip_echoed_cue(raw)
+
+
+def _strip_echoed_cue(text: str) -> str:
+    """모델이 프롬프트 끝의 cue(Question:/Guess:)나 따옴표를 그대로 되풀이해서
+    출력하는 경우를 정리. 실제 텍스트 내용은 건드리지 않고 앞부분만 정리."""
+    cleaned = text.strip()
+    for cue in ("Question:", "question:", "Guess:", "guess:"):
+        if cleaned.startswith(cue):
+            cleaned = cleaned[len(cue):].strip()
+    return cleaned.strip('"\'* ')
 
 
 
