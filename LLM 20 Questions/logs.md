@@ -1,3 +1,124 @@
+- 첫 루프 : guessing이 제대로 진행되지 않는다.
+카테고리: landmark / 정답(디버그): puncak jaya
+
+[Turn 1] Q: Do you think the person you're looking for is a famous explorer?
+           A: yes
+           Guess: The keyword is explorer.
+
+[Turn 2] Q: Do you think the person you're looking for is a famous explorer who has made significant contributions to the field of exploration?
+           A: yes
+           Guess: The keyword is explorer.
+
+The person you're looking for is a famous explorer who has made significant contributions to the field of exploration.
+
+[Turn 3] Q: Q: Do you think the person you're looking for is a famous explorer who has made a significant impact on the exploration of the Arctic?
+           A: yes
+           Guess: The keyword is [explorer].
+
+The person you are looking for is a famous explorer who has made significant contributions to the field of exploration.
+
+[Turn 4] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the Antarctic?
+           A: yes
+           Guess: The keyword is [Antarctic].
+
+The person you are looking for has made significant contributions to the exploration of the Antarctic.
+
+[Turn 5] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the Pacific Ocean?
+           A: yes
+           Guess: The keyword is [Antarctic].
+
+The person you are looking for has made significant contributions to the exploration of the Antarctic.
+
+[Turn 6] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human body?
+           A: yes
+           Guess: The keyword is [explorer].
+
+The person you are looking for has made significant contributions to the exploration of various parts of the world, including the Arctic, Antarctic, Pacific Ocean, and the human body.
+
+[Turn 7] Q: Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human mind?
+           A: yes
+           Guess: The keyword is [explorer].
+
+Each question progressively narrows down the possibilities, leading to the conclusion that the person being sought is a famous explorer.
+
+[Turn 8] Q: Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human spirit?
+           A: yes
+           Guess: The keyword is [explorer].
+
+Each question progressively narrows down the possibilities, leading to the conclusion that the person being sought is a famous explorer.
+
+[Turn 9] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human consciousness?
+           A: yes
+           Guess: The keyword is: **Antarctic**.
+
+Each question progressively narrows down the possibilities to the Antarctic, starting with the vastness of the ocean and then focusing on specific contributions to the exploration of the continent.
+
+[Turn 10] Q: Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human potential?
+           A: yes
+           Guess: The keyword is [explorer].
+
+Each question progressively narrows down the possibilities, focusing on specific geographic regions and contributions to exploration.
+
+[Turn 11] Q: Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human potential?
+           A: yes
+           Guess: The keyword is [explorer].
+
+Each question progressively narrows down the possibilities, focusing on different aspects of exploration.
+
+[Turn 12] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human potential?
+           A: yes
+           Guess: The keyword is [explorer].
+
+Each question progressively narrows down the possibilities, focusing on different aspects of exploration.
+
+[Turn 13] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human potential?
+           A: yes
+           Guess: The keyword is [explorer].
+
+Each question progressively narrows down the possibilities, leading to the final answer.
+
+[Turn 14] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human potential?
+           A: yes
+           Guess: The keyword is [explorer].
+
+Each question progressively narrows down the possibilities, leading to the final answer.
+
+[Turn 15] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human potential?
+           A: yes
+           Guess: The keyword is: **Explorer**
+
+[Turn 16] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human spirit?
+           A: yes
+           Guess: The keyword is [explorer].
+
+Each question progressively narrows down the possibilities, leading to the final answer.
+
+[Turn 17] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human consciousness?
+           A: yes
+           Guess: The keyword is [explorer].
+
+You have been able to determine that the person is a famous explorer who has made significant contributions to the exploration of various parts of the world.
+
+[Turn 18] Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human potential?
+           A: yes
+           Guess: The keyword is [explorer].
+
+You have been able to determine that the person you are looking for is a famous explorer who has made a significant contribution to the exploration of various parts of the world.
+
+[Turn 19] Q: Based on your previous questions, the person you're looking for is most likely a famous explorer who has made a significant contribution to the exploration of the human potential.
+           A: yes
+           Guess: The keyword is human potential.
+
+Throughout the questions, the focus has been on the person's contributions to the exploration of the human potential.
+
+[Turn 20] Q: Q: Do you think the person you're looking for is a famous explorer who has made a significant contribution to the exploration of the human potential in the context of their exploration of the human consciousness?
+           A: yes
+           Guess: The keyword is potential.
+
+Throughout the questions, the focus has been on the person's contributions to the exploration of potential in various fields.
+
+❌ 20턴 내 실패. 정답은: puncak jaya
+
 - llm_20_questions.py에서 함수를 차례로 불러와서 파싱해봐야겠다.
     - flan T5 (T5 계열 모델)의 특징 및 T5란 무엇인가
         Text To Text Transfer Transformer (T가 5개)
