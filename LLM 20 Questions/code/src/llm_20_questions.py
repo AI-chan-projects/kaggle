@@ -32,54 +32,6 @@ ASK = "ask"
 GUESSER = "guesser"
 ANSWERER = "guesser"
 
-MAX_TURNS = 20  # main.py의 run_game(max_turns=...)과 맞춰서 사용
-EARLY_TURN_THRESHOLD = 1  # 넓은 카테고리 질문은 1턴만. 그 이후는 반드시 좁혀나가야 함
-
-# ---- 프롬프트 템플릿(전역 상수) ----
-# call_llm과 같은 방식으로 몽키패치 가능: main.py에서
-# `ref.QUESTION_STRATEGY_EARLY = "..."` 처럼 값만 덮어쓰면
-# guesser_agent/answerer_agent 코드는 그대로 두고 프롬프트만 바꿔서 테스트 가능.
-
-GUESSER_INFO_PROMPT_TEMPLATE = """You are playing a game of 20 questions where you ask the questions and try to figure out the keyword, which will be a real or fictional person, place, or thing. \nHere is what you know so far:\n{q_a_thread}"""
-
-QUESTION_STRATEGY_EARLY = (
-    "Strategy: this is the very first question. Ask about exactly ONE broad "
-    "category — a strict yes/no question, never listing multiple options "
-    "with 'or'. Example of the right shape: 'Is it a place?'"
-)
-
-QUESTION_STRATEGY_LATE = (
-    "Strategy: you already know the broad category (person/place/animal/"
-    "object) from the yes/no answers above — do NOT ask about the broad "
-    "category again. Look at the Q&A history above and ask a NEW question "
-    "that narrows down further within what you already know (e.g. region, "
-    "size, time period, function) — a strict yes/no question, never listing "
-    "multiple options with 'or'. Never ask a question whose answer you can "
-    "already infer from the history above."
-)
-
-# 끝에 "Question:" cue를 붙여서 모델이 지시문에 답하는 대신 실제 질문을
-# 이어 쓰게 유도 (2B급 소형 모델은 복잡한 지시만으로는 형식을 잘 못 지킴).
-QUESTIONS_PROMPT_TEMPLATE = """Ask one yes or no question. This is question {turn_num} of {max_turns}.
-{strategy}
-Output only the question itself, nothing else.
-Question:"""
-
-GUESS_PROMPT_TEMPLATE = """Guess the keyword. Respond with only the exact word/phrase, nothing else — no sentence, no explanation. Do not default to an obvious/generic answer (e.g. "Paris" for a city) unless the evidence above actually points to it.
-Guess:"""
-
-GUESS_PROMPT_FINAL_TEMPLATE = (
-    "This is your LAST guess. Based on everything above, give your single "
-    "best guess for the keyword even if you are not fully certain. Respond "
-    "with only the exact word/phrase, nothing else. Do not default to an "
-    "obvious/generic answer unless the evidence above actually points to it.\n"
-    "Guess:"
-)
-
-ANSWERER_INFO_PROMPT_TEMPLATE = """You are a very precise answerer in a game of 20 questions. The keyword that the questioner is trying to guess is [the {category} {keyword}]. """
-
-ANSWER_QUESTION_PROMPT_TEMPLATE = """Answer the following question with only yes, no, or if unsure maybe: {question}"""
-
 keywords_list = json.loads(KEYWORDS_JSON)
 keyword_cat = random.choice(keywords_list)
 category = keyword_cat["category"]
@@ -89,6 +41,10 @@ alts = keyword_obj["alts"]
 
 
 def guesser_agent(obs):
+    info_prompt = """You are playing a game of 20 questions where you ask the questions and try to figure out the keyword, which will be a real or fictional person, place, or thing. \nHere is what you know so far:\n{q_a_thread}"""
+    questions_prompt = """Ask one yes or no question."""
+    guess_prompt = """Guess the keyword. Only respond with the exact word/phrase. For example, if you think the keyword is [paris], don't respond with [I think the keyword is paris] or [Is the kewyord Paris?]. Respond only with the word [paris]."""
+
     q_a_thread = ""
     for i in range(0, len(obs.answers)):
         q_a_thread = "{}Q: {} A: {}\n".format(
@@ -97,51 +53,32 @@ def guesser_agent(obs):
             obs.answers[i]
         )
 
+    prompt = ""
     if obs.turnType == ASK:
-        # obs.questions는 아직 이번 질문을 담기 전이므로, 다음 질문 번호 = len(questions) + 1
-        turn_num = len(obs.questions) + 1
-        strategy = QUESTION_STRATEGY_EARLY if turn_num <= EARLY_TURN_THRESHOLD else QUESTION_STRATEGY_LATE
-
-        questions_prompt = QUESTIONS_PROMPT_TEMPLATE.format(
-            turn_num=turn_num, max_turns=MAX_TURNS, strategy=strategy
-        )
-
         prompt = "{}{}".format(
-            GUESSER_INFO_PROMPT_TEMPLATE.format(q_a_thread=q_a_thread),
+            info_prompt.format(q_a_thread=q_a_thread),
             questions_prompt
         )
     elif obs.turnType == GUESS:
-        # obs.questions는 이번 라운드 질문까지 이미 포함된 상태이므로, 현재 라운드 = len(questions)
-        turn_num = len(obs.questions)
-        guess_prompt = GUESS_PROMPT_FINAL_TEMPLATE if turn_num >= MAX_TURNS else GUESS_PROMPT_TEMPLATE
-
         prompt = "{}{}".format(
-            GUESSER_INFO_PROMPT_TEMPLATE.format(q_a_thread=q_a_thread),
+            info_prompt.format(q_a_thread=q_a_thread),
             guess_prompt
         )
     else:
         return ""
+    
+    return call_llm(prompt)
 
-    raw = call_llm(prompt)
-    return _strip_echoed_cue(raw)
-
-
-def _strip_echoed_cue(text: str) -> str:
-    """모델이 프롬프트 끝의 cue(Question:/Guess:)나 따옴표를 그대로 되풀이해서
-    출력하는 경우를 정리. 실제 텍스트 내용은 건드리지 않고 앞부분만 정리."""
-    cleaned = text.strip()
-    for cue in ("Question:", "question:", "Guess:", "guess:"):
-        if cleaned.startswith(cue):
-            cleaned = cleaned[len(cue):].strip()
-    return cleaned.strip('"\'* ')
-
-
+    
 
 def answerer_agent(obs):
+    info_prompt = """You are a very precise answerer in a game of 20 questions. The keyword that the questioner is trying to guess is [the {category} {keyword}]. """
+    answer_question_prompt = """Answer the following question with only yes, no, or if unsure maybe: {question}"""
+
     if obs.turnType == "answer":
         prompt = "{}{}".format(
-            ANSWERER_INFO_PROMPT_TEMPLATE.format(category=category, keyword=keyword),
-            ANSWER_QUESTION_PROMPT_TEMPLATE.format(question=obs.questions[-1])
+            info_prompt.format(category=category,keyword=keyword),
+            answer_question_prompt.format(question=obs.questions[-1])
         )
         return call_llm(prompt)
     else: 
@@ -246,7 +183,7 @@ def interpreter(state, env):
             end_game(active1, inactive1, 0, DONE, DONE)
         else:
             increment_turn(active1, inactive1, step, guessed)
-
+    
     if active2 is not None:
         guessed = False
         if active2.observation.role == GUESSER:
@@ -260,7 +197,7 @@ def interpreter(state, env):
             end_game(active2, inactive2, 0, DONE, DONE)
         else:
             increment_turn(active2, inactive2, step, guessed)
-
+    
     return state
 
 

@@ -1,3 +1,127 @@
+- 열번째 :
+지금까지의 실험 결과:
+
+초기 문제
+Guesser가 실제 질문으로 들어가지 않고, Physicist, Leonardo da Vinci 같은 엉뚱한 추측을 생성함.
+→ 초기 프롬프트가 질문 생성보다 추측/일반적인 대화로 흐르게 만들고 있었음.
+프롬프트를 거의 모두 제거한 실험
+GUESSER_INFO_PROMPT_TEMPLATE = "안녕" 또는 빈 프롬프트 상태에서 Gemma 2B는 정상적인 20 Questions 행동을 하지 못함.
+→ 모델에게 역할과 출력 형식을 명확히 제공할 필요가 있음.
+Answerer의 secret 주입 구조 확인
+ref.keyword, ref.category를 함수에서 직접 참조하는 대신 GAME_KEYWORD, GAME_CATEGORY로 시작 시 고정하는 구조를 검토함.
+→ 게임 실행 중 secret이 바뀌는 문제를 방지하는 방향.
+Answerer deterministic 설정
+do_sample=False, max_new_tokens=2로 변경.
+→ Answerer는 Guesser보다 훨씬 강하게 출력 형식을 제한하는 게 적절함.
+Answerer Q&A history
+Answerer에게 이전 Q&A를 전달하는 구조도 확인했지만, 현재 핵심 실험에서는 제거하고 단순화함.
+Answerer의 이상 응답
+yes만 반복하거나 Answer: yes, The answer 같은 형식 오류가 발생함.
+→ 단순히 yes/no 출력 지시만으로는 Gemma 2B의 안정적인 Answerer 역할을 보장하지 못함.
+고유명사 판단 실험
+Colombia만 제공하고 Is the hidden answer a person?을 질문했는데 yes가 나옴.
+Colombia + Type: country + 지역/수도 등 정보세트를 제공해도 yes가 나옴.
+→ 고유명사 자체의 문제인지, 작은 모델의 추론/지시 수행 문제인지 추가 검증 필요.
+→ 적어도 단순한 정보세트를 추가한다고 문제가 바로 해결되지는 않음.
+Category-only 실험
+Category: country만 제공했더니 The provided... 같은 설명형 응답이 나옴.
+→ category만으로는 안정적인 Answerer를 만들기 어려움.
+Guesser의 질문 품질 문제
+Is the hidden answer a person? 같은 질문뿐 아니라
+Does the hidden answer have any unique or extraordinary properties?
+처럼 정보량이 낮고 추상적인 질문을 생성함.
+→ Answerer가 잘못 yes를 주면 Guesser가 animal, artifact, legendary creature 등으로 빠르게 잘못된 방향으로 이동함.
+현재 가장 유력한 다음 실험
+Answerer를 제거하고 사람이 YES/NO를 직접 제공.
+
+keyword/category는 사람이 알고 있고, Guesser는 모르게 한 상태에서:
+
+Guesser Q → 사람 A → Guesser Q → 사람 A → ...
+
+로 진행.
+
+이 실험으로 Guesser 자체의 질문 생성/탐색 능력을 Answerer 문제와 분리해서 확인할 수 있음.
+
+현재는 Answerer와 Guesser가 동시에 불안정해서 원인 분리가 필요하고, 다음 실험은 Human Answerer로 Guesser부터 독립 검증하는 단계
+
+이번에 확인한 건:
+
+**1. Answerer가 keyword/category를 받는 것과, 그 정보를 이용해 정확히 판단하는 것은 별개의 문제다.**
+
+`Colombia`를 주고도:
+
+> Is the hidden answer a person? → YES
+
+가 나왔고, `Colombia + Type: country` 같은 구조화된 정보까지 줘도 `YES`가 나왔어.
+
+그래서 지금은 `Answerer가 질문에 잘 답하는가?`를 보기 전에,
+
+> **Answerer가 주어진 keyword와 그에 대한 객관적 정보를 정확하게 내부적으로 사용할 수 있는가?**
+
+부터 검증해야 해.
+
+**2. Answerer를 바로 게임에 넣는 건 아직 이르다.**
+
+Answerer가 잘못된 `yes`를 내놓으면 Guesser는 그걸 사실이라고 믿고 다음 질문을 만들기 때문에, 이후의 Guesser 성능까지 오염돼.
+
+그래서 실험 순서는:
+
+```text
+Keyword
+  ↓
+Answerer에게 정보 제공
+  ↓
+정보를 제대로 이해했는가?
+  ↓
+YES/NO 판단이 정확한가?
+  ↓
+그 다음에야 Guesser와 연결
+```
+
+이게 맞아.
+
+그리고 여기서 한 단계 더 중요한 결론도 있어.
+
+**Answerer에게 keyword를 직접 주는 것만으로 충분하지 않을 가능성이 있다.**
+
+예를 들어:
+
+```text
+Answer: Colombia
+Type: country
+```
+
+를 줬는데도 실패했으니까, 다음에는 **Answerer가 사용할 수 있는 정보 표현 자체를 검증**해야 해.
+
+즉 오늘의 결론을 한 문장으로 정리하면:
+
+> **"게임 전체를 최적화하기 전에, Answerer가 주어진 정답과 그 속성 정보를 정확히 이해하고 객관적인 질문에 일관되게 YES/NO로 답할 수 있는지 독립적으로 검증해야 한다."**
+
+그리고 그 검증이 통과된 뒤에야 Guesser ↔ Answerer를 연결하는 게 맞음.
+
+
+- 아홉번째 루프 : flan t5 base만 사용하면 굉장히 빠른데 실속이 없어서 gemma vs flan t5로 돌아왔다.
+
+
+- 여덟번째 루프 : flan t5와 gemma를 구분해서 사용하기로 하였다.
+이상한 소리를 내뱉는다. variant와 Seed를 줘야 할 것 같다.
+
+로그 파일: /Users/ironie/code/kaggle/LLM 20 Questions/code/src/logs/20260807_150641_baseline.log
+프롬프트 variant: baseline
+seed: None
+guesser model: google/gemma-1.1-2b-it [causal, quantize=True] / answerer model: google/flan-t5-base [seq2seq, quantize=False]
+카테고리: city / 정답(디버그): montreal canada
+
+[Turn 1] Q: Thought: Narrowing down to the realm of largaurs...  (thought: Narrowing down to the realm of largaurs...)
+           A: no
+           Guess: Mesopotamia  (thought: Exploring the enigmatic lore of ancient civilizations... Guess: Mesopotamia)
+
+[Turn 2] Q: Does the object possess any unique physical characteristics?  (thought: Exploring the enigmatic nature of the sought-after artifact... Question: Does the object possess any)
+           A: yes
+           Guess: Medusa  (thought: Exploring the mythical qualities of the creature... Perhaps Medusa?)
+
+
+
 - 일곱번째 루프 : guess를 단어로 제한해서 맥락 정보가 수렴하는 것 같다.
     대회 규칙을 적용해야겠다.
     - 대회 규칙 I need 2 llm models
